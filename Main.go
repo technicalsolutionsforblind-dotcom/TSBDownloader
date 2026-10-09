@@ -12,7 +12,6 @@ import (
 )
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	// CORS इनेबल करें ताकि Netlify से रिक्वेस्ट आ सके
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	http.ServeFile(w, r, "templates/yt-downloader.html")
 }
@@ -44,13 +43,40 @@ func convertHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 1. yt-dlp से वीडियो का टाइटल और डायरेक्ट स्ट्रीमिंग/डेटा URL एक साथ निकालें (-g और --get-title)
-	// इससे सर्वर पर फाइल डाउनलोड करने की जरूरत ही नहीं पड़ेगी!
-	cmd := exec.Command("yt-dlp", "--get-title", "-g", videoURL)
+	// बुलेटप्रूफ yt-dlp कमांड: --no-playlist, असली ब्राउज़र का User-Agent, और Geo-bypass फ्लैग ताकि ब्लॉक न हो
+	cmd := exec.Command(
+		"yt-dlp",
+		"--no-playlist",
+		"--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+		"--geo-bypass",
+		"--get-title",
+		"-g",
+		videoURL,
+	)
+
 	outputBytes, err := cmd.Output()
 	if err != nil {
-		json.NewEncoder(w).Encode(ConvertResponse{Success: false, Error: "Failed to fetch stream URL. Invalid or restricted link."})
-		return
+		// अगर पहला तरीका फेल हो, तो एक बार yt-dlp को खुद को अपडेट करने की कोशिश करने का फॉલबैक
+		log.Printf("Primary extraction failed: %v. Attempting update fallback...", err)
+		
+		updateCmd := exec.Command("yt-dlp", "-U")
+		_ = updateCmd.Run()
+
+		// दोबारा कमांड चलाएं
+		cmdRetry := exec.Command(
+			"yt-dlp",
+			"--no-playlist",
+			"--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+			"--geo-bypass",
+			"--get-title",
+			"-g",
+			videoURL,
+		)
+		outputBytes, err = cmdRetry.Output()
+		if err != nil {
+			json.NewEncoder(w).Encode(ConvertResponse{Success: false, Error: "Failed to fetch stream URL. YouTube might be blocking the server IP or the link is invalid."})
+			return
+		}
 	}
 
 	outputStr := strings.TrimSpace(string(outputBytes))
@@ -66,13 +92,12 @@ func convertHandler(w http.ResponseWriter, r *http.Request) {
 		mediaTitle = "tsb_media"
 	}
 
-	// अगर ऑडियो फॉर्मेट मांगा गया है, तो yt-dlp का ऑडियो डायरेक्ट लिंक उठाएं, वरना वीडियो लिंक
 	directURL := strings.TrimSpace(lines[len(lines)-1])
 
 	json.NewEncoder(w).Encode(ConvertResponse{
 		Success:     true,
 		Title:       mediaTitle,
-		DownloadURL: directURL, // सीधा यूट्यूब का हाई-स्पीड CDN लिंक यूजर को मिल जाएगा!
+		DownloadURL: directURL,
 	})
 }
 
@@ -116,6 +141,6 @@ func main() {
 		port = "8080"
 	}
 
-	fmt.Printf("🚀 TSB High-Speed Direct Stream Server started on port %s\n", port)
+	fmt.Printf("🚀 TSB Bulletproof Direct Stream Server started on port %s\n", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }

@@ -1,8 +1,8 @@
 # गो का ऑफिशियल इमेज लें
 FROM golang:1.22-alpine
 
-# सिस्टम में yt-dlp और ffmpeg इनस्टॉल करें ताकि सर्वर पर वीडियो प्रोसेस हो सके
-RUN apk add --no-cache ffmpeg python3 curl && \
+# सिस्टम में ffmpeg, python3, py3-pip, curl और ca-certificates इनस्टॉल करें
+RUN apk add --no-cache ffmpeg python3 py3-pip curl ca-certificates && \
     curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
     chmod a+rx /usr/local/bin/yt-dlp
 
@@ -16,7 +16,7 @@ RUN go mod download
 # बाकी सारा कोड कॉपी करें
 COPY . .
 
-# गो ऐप को कंपाइल करें (यहाँ main.go की जगह . लगाया है)
+# गो ऐप को कंपाइल करें
 RUN go build -o tsb-server .
 
 # पोर्ट एक्सपोज़ करें
