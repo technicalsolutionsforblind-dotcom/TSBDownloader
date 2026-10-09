@@ -43,12 +43,12 @@ func convertHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// बुलेटप्रूफ yt-dlp कमांड: --no-playlist, असली ब्राउज़र का User-Agent, और Geo-bypass फ्लैग ताकि ब्लॉक न हो
+	// 🚀 ब्रह्मास्त्र फ्लैग: --extractor-args "youtube:player_client=android"
+	// यह यूट्यूब को चकमा देकर Render के आईपी को ब्लॉक होने से बचाता है और सुपर-फास्ट डायरेक्ट लिंक देता है!
 	cmd := exec.Command(
 		"yt-dlp",
 		"--no-playlist",
-		"--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-		"--geo-bypass",
+		"--extractor-args", "youtube:player_client=android",
 		"--get-title",
 		"-g",
 		videoURL,
@@ -56,25 +56,18 @@ func convertHandler(w http.ResponseWriter, r *http.Request) {
 
 	outputBytes, err := cmd.Output()
 	if err != nil {
-		// अगर पहला तरीका फेल हो, तो एक बार yt-dlp को खुद को अपडेट करने की कोशिश करने का फॉલबैक
-		log.Printf("Primary extraction failed: %v. Attempting update fallback...", err)
-		
-		updateCmd := exec.Command("yt-dlp", "-U")
-		_ = updateCmd.Run()
-
-		// दोबारा कमांड चलाएं
-		cmdRetry := exec.Command(
+		// फॉलबैक के लिए iOS क्लाइंट ट्राई करें अगर एंड्रॉइड पर कुछ हो
+		cmdFallback := exec.Command(
 			"yt-dlp",
 			"--no-playlist",
-			"--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-			"--geo-bypass",
+			"--extractor-args", "youtube:player_client=ios",
 			"--get-title",
 			"-g",
 			videoURL,
 		)
-		outputBytes, err = cmdRetry.Output()
+		outputBytes, err = cmdFallback.Output()
 		if err != nil {
-			json.NewEncoder(w).Encode(ConvertResponse{Success: false, Error: "Failed to fetch stream URL. YouTube might be blocking the server IP or the link is invalid."})
+			json.NewEncoder(w).Encode(ConvertResponse{Success: false, Error: "Failed to fetch stream URL. Please try another link."})
 			return
 		}
 	}
@@ -141,6 +134,6 @@ func main() {
 		port = "8080"
 	}
 
-	fmt.Printf("🚀 TSB Bulletproof Direct Stream Server started on port %s\n", port)
+	fmt.Printf("🚀 TSB Lightning-Fast Android-Bypass Server started on port %s\n", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
