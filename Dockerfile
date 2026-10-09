@@ -1,4 +1,4 @@
-# Go का ऑफिशियल इमेज लें
+# गो का ऑफिशियल इमेज लें
 FROM golang:1.22-alpine
 
 # सिस्टम में yt-dlp और ffmpeg इनस्टॉल करें ताकि सर्वर पर वीडियो प्रोसेस हो सके
@@ -16,8 +16,8 @@ RUN go mod download
 # बाकी सारा कोड कॉपी करें
 COPY . .
 
-# गो ऐप को कंपाइल करें
-RUN go build -o tsb-server main.go
+# गो ऐप को कंपाइल करें (यहाँ main.go की जगह . लगाया है)
+RUN go build -o tsb-server .
 
 # पोर्ट एक्सपोज़ करें
 EXPOSE 8080
