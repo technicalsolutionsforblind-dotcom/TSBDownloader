@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TSB Ultimate Media Converter & Downloader</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .card { background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); width: 500px; text-align: left; box-sizing: border-box; }
+        h2 { text-align: center; margin-bottom: 5px; color: #38bdf8; }
+        p.subtitle { text-align: center; color: #94a3b8; font-size: 13px; margin-bottom: 25px; }
+        label { display: block; margin-top: 15px; font-size: 14px; color: #cbd5e1; font-weight: bold; }
+        input, select { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #475569; background: #0f172a; color: white; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+        button { background: #2563eb; color: white; border: none; padding: 14px; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; margin-top: 20px; }
+        button:hover { background: #1d4ed8; }
+        #status-box { margin-top: 20px; padding: 15px; background: #0f172a; border-radius: 6px; border: 1px solid #334155; display: none; text-align: center; }
+        .spinner { border: 3px solid #334155; border-top: 3px solid #38bdf8; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 0 auto 10px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #download-btn { background: #16a34a; display: none; text-decoration: none; color: white; padding: 12px; border-radius: 6px; text-align: center; font-weight: bold; margin-top: 15px; }
+        #download-btn:hover { background: #15803d; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>TSB Downloader</h2>
+        <p class="subtitle">Super-Fast Video & Audio Converter</p>
+        
+        <label>YouTube Link:</label>
+        <input type="text" id="url" placeholder="https://www.youtube.com/watch?v=...">
+
+        <label>Select Format:</label>
+        <select id="format">
+            <optgroup label="Video Formats">
+                <option value="mp4" selected>MP4 (Best Quality & Fast)</option>
+                <option value="mkv">MKV</option>
+                <option value="webm">WebM</option>
+            </optgroup>
+            <optgroup label="Audio Formats">
+                <option value="mp3">MP3 (High Quality Audio)</option>
+                <option value="m4a">M4A</option>
+                <option value="wav">WAV</option>
+                <option value="flac">FLAC</option>
+            </optgroup>
+        </select>
+
+        <button onclick="startConversion()">Convert Now</button>
+
+        <div id="status-box">
+            <div class="spinner" id="spinner"></div>
+            <p id="status-text" style="margin: 0; font-size: 14px; color: #38bdf8;">Processing media at lightning speed...</p>
+            <a id="download-btn" href="#" target="_blank">Download Converted File</a>
+        </div>
+    </div>
+
+    <script>
+        // जब आप Koyeb पर डिप्लॉय कर लें, तो यहाँ अपना Koyeb का बैकएंड URL डाल देना (जैसे https://xxx.koyeb.app)
+        // अभी लोकल टेस्ट के लिए यह खाली या लोकलहॉस्ट रह सकता है
+        const KOYEB_BACKEND_URL = ""; 
+
+        async function startConversion() {
+            const url = document.getElementById('url').value;
+            const format = document.getElementById('format').value;
+            
+            if (!url) {
+                alert("Please paste a valid link!");
+                return;
+            }
+
+            const statusBox = document.getElementById('status-box');
+            const spinner = document.getElementById('spinner');
+            const statusText = document.getElementById('status-text');
+            const downloadBtn = document.getElementById('download-btn');
+
+            statusBox.style.display = 'block';
+            spinner.style.display = 'block';
+            downloadBtn.style.display = 'none';
+            statusText.innerText = "Processing media at lightning speed...";
+
+            try {
+                const response = await fetch(`${KOYEB_BACKEND_URL}/convert?url=${encodeURIComponent(url)}&format=${format}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    spinner.style.display = 'none';
+                    statusText.innerText = "Ready: " + data.title;
+                    downloadBtn.href = KOYEB_BACKEND_URL + data.download_url;
+                    downloadBtn.innerText = "Download (" + data.title + ")";
+                    downloadBtn.style.display = 'block';
+                } else {
+                    spinner.style.display = 'none';
+                    statusText.innerText = "Error: " + data.error;
+                }
+            } catch (err) {
+                spinner.style.display = 'none';
+                statusText.innerText = "An unexpected error occurred!";
+            }
+        }
+    </script>
+</body>
+</html>
